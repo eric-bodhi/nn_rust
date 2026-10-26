@@ -51,7 +51,7 @@ impl Network {
     // adjusts weights
     //pub fn update(&mut self, gradient: Gradient) {}
 
-    //pub fn back_prop(&self, cache: Activations, label: u8) -> Gradient {}
+    pub fn back_prop(&self, cache: Activations, label: u8) -> Gradient {}
 }
 
 pub struct Activations {
@@ -72,6 +72,13 @@ pub struct Gradient {
 // fuck you??
 fn relu(number: f32) -> f32 {
     number.max(0_f32)
+}
+
+// cross entropy loss function
+// highly correct = low loss
+// very wrong = big loss
+fn loss(p: f32) -> f32 {
+    -p.ln()
 }
 
 fn softmax(logits: &Array1<f32>) -> Array1<f32> {
