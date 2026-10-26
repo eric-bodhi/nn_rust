@@ -1,7 +1,8 @@
+use ndarray::Array1;
 mod idx;
 mod network;
 // turn bytes [0, 255] to [0.0, 1.0]
-fn normalize_image(image: &[u8]) -> Vec<f32> {
+fn normalize_image(image: &[u8]) -> Array1<f32> {
     image.iter().map(|&val| val as f32 / 255.0).collect()
 }
 
@@ -31,6 +32,6 @@ fn main() {
     for i in 0..100 {
         println!("\nlabel: {}", labels[i]);
         let data = images.get(i);
-        print_image(&normalize_image(data));
+        print_image(&normalize_image(data).as_slice().unwrap());
     }
 }
