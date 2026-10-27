@@ -3,12 +3,15 @@ use ndarray_rand::RandomExt;
 use ndarray_rand::rand::{SeedableRng, rngs::StdRng};
 use ndarray_rand::rand_distr::Uniform;
 
+mod visualize;
+
 // neural network main struct
 // w1 is input layer weights to hidden layer
 // w2 is hidden layer weights to output layer
 // b1 is input layer biases to hidden layer
 // b2 is hidden layer biases to output layer
 
+// goal is to minimize loss function... all calculus
 pub struct Network {
     weights1: Array2<f32>,
     bias1: Array1<f32>,
@@ -49,11 +52,21 @@ impl Network {
     }
 
     // adjusts weights
-    //pub fn update(&mut self, gradient: Gradient) {}
+    pub fn update(&mut self, gradient: &Gradient, learning_rate: f32) {
+        self.weights1
+            .scaled_add(-learning_rate, &gradient.weights1_gradient);
+        self.weights2
+            .scaled_add(-learning_rate, &gradient.weights2_gradient);
+        self.bias1
+            .scaled_add(-learning_rate, &gradient.bias1_gradient);
+        self.bias2
+            .scaled_add(-learning_rate, &gradient.bias2_gradient);
+    }
 
-    pub fn back_prop(&self, cache: Activations, label: u8) -> Gradient {}
+    //pub fn back_prop(&self, cache: Activations, label: u8) -> Gradient {}
 }
 
+// basically a cache from the forward propagation
 pub struct Activations {
     x: Array1<f32>,  // input pixels [0.0, 1.0]
     z1: Array1<f32>, // hidden pre activations
@@ -61,12 +74,17 @@ pub struct Activations {
     p: Array1<f32>,  // output probabilities
 }
 
+// Sensitivity of weights: ∂L/∂w = ∂L/∂a * ∂a/∂z * ∂z*∂w
+// gradient parameter tells you how sensitive the loss is to each parameter, i.e. weights, biases
+// positive gradient value means turning knob up makes the loss so we should turn the knob down
+// negative means turn the knob up
 pub struct Gradient {
-    w1: Array2<f32>,
-    b1: Array1<f32>,
-    w2: Array2<f32>,
-    b2: Array1<f32>,
+    weights1_gradient: Array2<f32>,
+    bias1_gradient: Array1<f32>,
+    weights2_gradient: Array2<f32>,
+    bias2_gradient: Array1<f32>,
 }
+// gradient descent update rule: w_new = curr_w - learning_rate * ∂L/∂w
 
 // rectified linear unit activation function
 // fuck you??

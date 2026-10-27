@@ -29,9 +29,9 @@ fn main() {
         "loaded {} images of {}x{}",
         images.count, images.rows, images.cols
     );
-    for i in 0..100 {
-        println!("\nlabel: {}", labels[i]);
-        let data = images.get(i);
-        print_image(&normalize_image(data).as_slice().unwrap());
+    let network = network::Network::new(42);
+    for i in 0..1 {
+        let activations = network.forward(normalize_image(images.get(i)));
+        activations.print_diagram(labels[i]);
     }
 }
