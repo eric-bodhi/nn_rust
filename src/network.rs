@@ -2,6 +2,10 @@ use ndarray::{Array1, Array2};
 use ndarray_rand::RandomExt;
 use ndarray_rand::rand::{SeedableRng, rngs::StdRng};
 use ndarray_rand::rand_distr::Uniform;
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{self, BufReader, BufWriter};
+use std::path::Path;
 
 // neural network main struct
 // w1 is input layer weights to hidden layer
@@ -10,6 +14,7 @@ use ndarray_rand::rand_distr::Uniform;
 // b2 is hidden layer biases to output layer
 
 // goal is to minimize loss function... all calculus
+#[derive(Serialize, Deserialize)]
 pub struct Network {
     weights1: Array2<f32>,
     bias1: Array1<f32>,
@@ -35,6 +40,19 @@ impl Network {
             weights2: Array2::random_using((10, 128), w2_dist, &mut rng),
             bias2: Array1::zeros(10),
         }
+    }
+
+    // writes weights and biases to a json file
+    pub fn save(&self, path: impl AsRef<Path>) -> io::Result<()> {
+        let writer = BufWriter::new(File::create(path)?);
+        serde_json::to_writer(writer, self)?;
+        Ok(())
+    }
+
+    // reads a network back from a file written by save
+    pub fn load(path: impl AsRef<Path>) -> io::Result<Self> {
+        let reader = BufReader::new(File::open(path)?);
+        Ok(serde_json::from_reader(reader)?)
     }
 
     pub fn forward(&self, image: Array1<f32>) -> Activations {

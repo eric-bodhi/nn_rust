@@ -30,13 +30,10 @@ fn main() {
         images.count, images.rows, images.cols
     );
 
-    let mut network = network::Network::new(42);
+    let mut network = network::Network::load("model.json").expect("failed to load model");
     let mut accuracy: f32 = 1.0;
-    for i in 0..10000 {
+    for i in 0..1000 {
         let activations = network.forward(normalize_image(images.get(i)));
-        let gradient = network.back_prop(&activations, labels[i]);
-        network.update(&gradient, 0.01);
-
         accuracy = (accuracy + activations.p[labels[i] as usize]) / 2.0;
         if i % 100 == 0 {
             println!("Image {i}");
@@ -44,4 +41,28 @@ fn main() {
             println!("Accuracy: {:?}", accuracy * 100.0);
         }
     }
+    /*
+        let mut network = network::Network::new(42);
+
+        let mut accuracy: f32 = 1.0;
+        let mut learning_rate: f32 = 0.01;
+        for i in 0..60000 {
+            let activations = network.forward(normalize_image(images.get(i)));
+            let gradient = network.back_prop(&activations, labels[i]);
+            network.update(&gradient, learning_rate);
+
+            accuracy = (accuracy + activations.p[labels[i] as usize]) / 2.0;
+            if i % 100 == 0 {
+                println!("Image {i}");
+                println!("Loss: {:?}", activations.loss(labels[i]));
+                println!("Accuracy: {:?}", accuracy * 100.0);
+            }
+
+            if i % 2500 == 0 && i != 0 {
+                learning_rate /= 2.0;
+            }
+        }
+
+        network.save("model.json").expect("failed to save");
+    */
 }
