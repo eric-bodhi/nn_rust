@@ -29,6 +29,8 @@ impl Network {
         let w2_limit: f32 = ((6.0 / 128.0) as f32).sqrt();
         let w2_dist = Uniform::new(-w2_limit, w2_limit).unwrap();
 
+        // every connection has its own weight
+        // but bias are per neuron
         Network {
             weights1: Array2::random_using((128, 784), w1_dist, &mut rng),
             bias1: Array1::zeros(128),
@@ -41,6 +43,7 @@ impl Network {
         let pre_activations = self.weights1.dot(&image) + &self.bias1;
         let post_activations = pre_activations.mapv(relu);
         let logits = self.weights2.dot(&post_activations) + &self.bias2;
+        // logits are the neurons BEFORE softmax turns them into probabilities that sum to 1
         let probs = softmax(&logits);
 
         Activations {
@@ -52,6 +55,8 @@ impl Network {
     }
 
     // adjusts weights
+    // gradient descent update rule: w_new = curr_w - learning_rate * ∂L/∂w
+    // or b_new = curr_b - learning_rate * ∂L/∂b
     pub fn update(&mut self, gradient: &Gradient, learning_rate: f32) {
         self.weights1
             .scaled_add(-learning_rate, &gradient.weights1_gradient);
@@ -63,7 +68,47 @@ impl Network {
             .scaled_add(-learning_rate, &gradient.bias2_gradient);
     }
 
-    //pub fn back_prop(&self, cache: Activations, label: u8) -> Gradient {}
+    // fucking wizard math
+    pub fn back_prop(&self, cache: &Activations, label: u8) -> Gradient {
+        // bias2 also equals logits_gradient because nudging bias2[digit] by 1
+        // moves logit[digit] by 1, so ∂logit/∂b = 1
+        let mut logits_gradient: Array1<f32> = Array1::zeros(10);
+
+        let mut index: usize = 0;
+        for prob in &cache.p {
+            if index as u8 == label {
+                logits_gradient[index] = *prob - 1.0;
+            } else {
+                logits_gradient[index] = *prob;
+            }
+            index += 1;
+        }
+
+        let mut weights2_gradient: Array2<f32> = Array2::zeros((10, 128));
+        for ((digit, hidden_neuron), slot) in weights2_gradient.indexed_iter_mut() {
+            *slot = logits_gradient[digit] * cache.a1[hidden_neuron];
+        }
+
+        let mut hidden_post_activation_gradient: Array1<f32> = Array1::zeros(128);
+        for j in 0..128 {
+            let mut temp: Array1<f32> = Array1::zeros(10);
+            for digit in 0..10 {
+                temp[digit] = self.weights2[(digit, j)] * logits_gradient[digit];
+            }
+            hidden_post_activation_gradient[j] = temp.sum();
+        }
+
+        let mut hidden_pre_activation_gradient: Array1<f32> = Array1::zeros(128);
+        for (index, val) in cache.a1.indexed_iter() {
+            if *val > 0.0 {
+                hidden_pre_activation_gradient[index] = hidden_post_activation_gradient[index];
+            } else {
+                hidden_pre_activation_gradient[index] = 0.0;
+            }
+        }
+
+        todo!()
+    }
 }
 
 // basically a cache from the forward propagation
@@ -76,7 +121,7 @@ pub struct Activations {
 
 // Sensitivity of weights: ∂L/∂w = ∂L/∂a * ∂a/∂z * ∂z*∂w
 // gradient parameter tells you how sensitive the loss is to each parameter, i.e. weights, biases
-// positive gradient value means turning knob up makes the loss so we should turn the knob down
+// positive gradient value means turning knob up makes the loss go up so we should turn the knob down
 // negative means turn the knob up
 pub struct Gradient {
     weights1_gradient: Array2<f32>,
@@ -84,7 +129,6 @@ pub struct Gradient {
     weights2_gradient: Array2<f32>,
     bias2_gradient: Array1<f32>,
 }
-// gradient descent update rule: w_new = curr_w - learning_rate * ∂L/∂w
 
 // rectified linear unit activation function
 // fuck you??
