@@ -29,11 +29,19 @@ fn main() {
         "loaded {} images of {}x{}",
         images.count, images.rows, images.cols
     );
+
     let mut network = network::Network::new(42);
-    for i in 0..60000 {
+    let mut accuracy: f32 = 1.0;
+    for i in 0..10000 {
         let activations = network.forward(normalize_image(images.get(i)));
         let gradient = network.back_prop(&activations, labels[i]);
         network.update(&gradient, 0.01);
-        println!("{:?}", activations.loss(labels[i]));
+
+        accuracy = (accuracy + activations.p[labels[i] as usize]) / 2.0;
+        if i % 100 == 0 {
+            println!("Image {i}");
+            println!("Loss: {:?}", activations.loss(labels[i]));
+            println!("Accuracy: {:?}", accuracy * 100.0);
+        }
     }
 }

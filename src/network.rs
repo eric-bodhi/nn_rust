@@ -3,8 +3,6 @@ use ndarray_rand::RandomExt;
 use ndarray_rand::rand::{SeedableRng, rngs::StdRng};
 use ndarray_rand::rand_distr::Uniform;
 
-mod visualize;
-
 // neural network main struct
 // w1 is input layer weights to hidden layer
 // w2 is hidden layer weights to output layer
@@ -72,6 +70,9 @@ impl Network {
     pub fn back_prop(&self, cache: &Activations, label: u8) -> Gradient {
         // bias2 also equals logits_gradient because nudging bias2[digit] by 1
         // moves logit[digit] by 1, so ∂logit/∂b = 1
+        // logits_gradient = p - one_hot(label)
+        // where one_hot is the length 10 vector where every number is 0 but the label which is 1
+        // i.e. [0,0,0,0,1,0...] label = 4
         let mut logits_gradient: Array1<f32> = Array1::zeros(10);
 
         let mut index: usize = 0;
@@ -127,10 +128,10 @@ impl Network {
 
 // basically a cache from the forward propagation
 pub struct Activations {
-    x: Array1<f32>,  // input pixels [0.0, 1.0]
-    z1: Array1<f32>, // hidden pre activations
-    a1: Array1<f32>, // hidden post activations (relu)
-    p: Array1<f32>,  // output probabilities
+    x: Array1<f32>,     // input pixels [0.0, 1.0]
+    z1: Array1<f32>,    // hidden pre activations
+    a1: Array1<f32>,    // hidden post activations (relu)
+    pub p: Array1<f32>, // output probabilities
 }
 
 impl Activations {
