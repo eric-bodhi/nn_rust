@@ -29,9 +29,11 @@ fn main() {
         "loaded {} images of {}x{}",
         images.count, images.rows, images.cols
     );
-    let network = network::Network::new(42);
-    for i in 0..1 {
+    let mut network = network::Network::new(42);
+    for i in 0..60000 {
         let activations = network.forward(normalize_image(images.get(i)));
-        activations.print_diagram(labels[i]);
+        let gradient = network.back_prop(&activations, labels[i]);
+        network.update(&gradient, 0.01);
+        println!("{:?}", activations.loss(labels[i]));
     }
 }

@@ -84,6 +84,8 @@ impl Network {
             index += 1;
         }
 
+        let bias2_gradient: Array1<f32> = logits_gradient.clone();
+
         let mut weights2_gradient: Array2<f32> = Array2::zeros((10, 128));
         for ((digit, hidden_neuron), slot) in weights2_gradient.indexed_iter_mut() {
             *slot = logits_gradient[digit] * cache.a1[hidden_neuron];
@@ -107,7 +109,19 @@ impl Network {
             }
         }
 
-        todo!()
+        let mut weights1_gradient: Array2<f32> = Array2::zeros((128, 784));
+        for ((hidden_neuron, input_pixel), slot) in weights1_gradient.indexed_iter_mut() {
+            *slot = hidden_pre_activation_gradient[hidden_neuron] * cache.x[input_pixel];
+        }
+
+        let bias1_gradient: Array1<f32> = hidden_pre_activation_gradient;
+
+        Gradient {
+            weights1_gradient,
+            bias1_gradient,
+            weights2_gradient,
+            bias2_gradient,
+        }
     }
 }
 
@@ -119,6 +133,14 @@ pub struct Activations {
     p: Array1<f32>,  // output probabilities
 }
 
+impl Activations {
+    // cross entropy loss function
+    // highly correct = low loss
+    // very wrong = big loss
+    pub fn loss(&self, digit: u8) -> f32 {
+        -(self.p[digit as usize].ln())
+    }
+}
 // Sensitivity of weights: ∂L/∂w = ∂L/∂a * ∂a/∂z * ∂z*∂w
 // gradient parameter tells you how sensitive the loss is to each parameter, i.e. weights, biases
 // positive gradient value means turning knob up makes the loss go up so we should turn the knob down
@@ -134,13 +156,6 @@ pub struct Gradient {
 // fuck you??
 fn relu(number: f32) -> f32 {
     number.max(0_f32)
-}
-
-// cross entropy loss function
-// highly correct = low loss
-// very wrong = big loss
-fn loss(p: f32) -> f32 {
-    -p.ln()
 }
 
 fn softmax(logits: &Array1<f32>) -> Array1<f32> {
