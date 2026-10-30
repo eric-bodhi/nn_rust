@@ -6,22 +6,7 @@ mod idx;
 mod mat_autograd;
 mod matrix;
 mod network;
-// turn bytes [0, 255] to [0.0, 1.0]
-fn normalize_image(image: &[u8]) -> Array1<f32> {
-    image.iter().map(|&val| val as f32 / 255.0).collect()
-}
-
-fn print_image(image: &[f32]) {
-    const SHADES: &[u8] = b" .:-=+*#%@";
-    for row in image.chunks(28) {
-        let line: String = row
-            .iter()
-            .map(|&p| SHADES[(p * (SHADES.len() - 1) as f32) as usize] as char)
-            .flat_map(|c| [c, c])
-            .collect();
-        println!("{line}");
-    }
-}
+mod train;
 
 fn main() {
     let images = idx::load_images("data/train-images-idx3-ubyte/train-images.idx3-ubyte")
@@ -35,40 +20,10 @@ fn main() {
         images.count, images.rows, images.cols
     );
 
-    /*
-    let mut network = network::Network::load("model.json").expect("failed to load model");
-    for i in 0..20 {
-        let activations = network.forward(normalize_image(images.get(i)));
-        print_image(normalize_image(images.get(i)).as_slice().unwrap());
-        println!("{:?}", activations.p);
-        println!("{:?}", activations.p[labels[i] as usize] * 100.0)
-    }
-    */
+    let test_images = idx::load_images("data/t10k-images-idx3-ubyte/t10k-images.idx3-ubyte")
+        .expect("failed to read test images");
+    let test_labels = idx::load_labels("data/t10k-labels-idx1-ubyte/t10k-labels.idx1-ubyte")
+        .expect("failed to read test labels");
 
-    /*
-        let mut network = network::Network::new(42);
-
-        let mut accuracy: f32 = 1.0;
-        let mut learning_rate: f32 = 0.01;
-        for i in 0..60000 {
-            let activations = network.forward(normalize_image(images.get(i)));
-            let gradient = network.back_prop(&activations, labels[i]);
-            network.update(&gradient, learning_rate);
-
-            accuracy = (accuracy + activations.p[labels[i] as usize]) / 2.0;
-            if i % 100 == 0 {
-                println!("Image {i}");
-                println!("Loss: {:?}", activations.loss(labels[i]));
-                println!("Accuracy: {:?}", accuracy * 100.0);
-            }
-
-            if i % 4000 == 0 && i != 0 {
-                learning_rate /= 2.0;
-            }
-        }
-
-        network.save("model.json").expect("failed to save");
-    */
-
-    autograd::autograd();
+    train::train(&images, &labels, &test_images, &test_labels).expect("gpu training failed");
 }

@@ -125,6 +125,18 @@ impl MatTape {
         }
     }
 
+    // consumes the tape and hands back (value, grad) for each requested node,
+    // in the order asked. used after back_prop to get the weights back out
+    pub fn into_leaves(self, ids: &[usize]) -> Vec<(Matrix, Option<Matrix>)> {
+        let mut nodes: Vec<Option<Node>> = self.nodes.into_iter().map(Some).collect();
+        ids.iter()
+            .map(|&id| {
+                let node = nodes[id].take().expect("node requested twice");
+                (node.value, node.grad)
+            })
+            .collect()
+    }
+
     // seed is ∂loss/∂(node `from`), same shape as its value.
     // for a 1x1 loss that's just [[1.0]]; with softmax + cross-entropy you'd
     // seed the logits with (softmax - onehot) / batch instead

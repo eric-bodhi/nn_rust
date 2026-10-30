@@ -2,16 +2,16 @@ use cudarc::cublas::result::CublasError;
 use cudarc::driver::DriverError;
 use cudarc::nvrtc::CompileError;
 
-/// Everything that can go wrong on the GPU side.
+/// Everything that can go wrong on the GPU side
 #[derive(Debug)]
 pub enum Error {
-    /// Matrix dimensions don't line up for the operation.
+    /// Matrix dimensions don't line up for the operation
     Shape(String),
-    /// CUDA driver: allocation, copies, kernel launches.
+    /// CUDA driver: allocation, copies, kernel launches
     Driver(DriverError),
-    /// cuBLAS (matmul).
+    /// cuBLAS (matmul)
     Cublas(CublasError),
-    /// NVRTC failed to compile the kernel source.
+    /// NVRTC failed to compile the kernel source
     Compile(CompileError),
 }
 
