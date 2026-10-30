@@ -103,6 +103,15 @@ impl MatTape {
     // grad += contribution
     fn accumulate(&mut self, id: usize, contribution: Matrix) -> Result<()> {
         let node = &mut self.nodes[id];
+        // a gradient always has the same shape as the value it belongs to
+        if contribution.shape() != node.value.shape() {
+            return Err(Error::Shape(format!(
+                "gradient {:?} for node {id} ({:?}) of shape {:?}",
+                contribution.shape(),
+                node.operation,
+                node.value.shape()
+            )));
+        }
         node.grad = Some(match node.grad.take() {
             None => contribution,
             Some(grad) => grad.add(&contribution)?,
@@ -150,12 +159,21 @@ impl MatTape {
                     vec![(a, g.try_clone()?), (b, g.scale(-1.0)?)]
                 }
                 Op::Mul(a, b) => {
-                    vec![(a, g.mul(self.value(b)?)?)]
+                    vec![(a, g.mul(self.value(b))?), (b, g.mul(self.value(a))?)]
                 }
-                Op::Scale(a, s) => todo!(),
-                Op::AddRow(x, bias) => todo!(),
-                Op::Relu(z) => todo!(),
-                Op::T(a) => todo!(),
+
+                Op::Scale(a, s) => {
+                    vec![(a, g.scale(s)?)]
+                }
+                Op::AddRow(x, bias) => {
+                    vec![(x, g.try_clone()?), (bias, g.sum_cols()?)]
+                }
+                Op::Relu(z) => {
+                    vec![(z, self.value(z).relu_backward(g)?)]
+                }
+                Op::T(a) => {
+                    vec![(a, g.t()?)]
+                }
             };
 
             for (id, contribution) in contributions {
