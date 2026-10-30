@@ -1,5 +1,10 @@
 use ndarray::Array1;
+mod autograd;
+mod error;
+mod gpu;
 mod idx;
+mod mat_autograd;
+mod matrix;
 mod network;
 // turn bytes [0, 255] to [0.0, 1.0]
 fn normalize_image(image: &[u8]) -> Array1<f32> {
@@ -30,17 +35,16 @@ fn main() {
         images.count, images.rows, images.cols
     );
 
+    /*
     let mut network = network::Network::load("model.json").expect("failed to load model");
-    let mut accuracy: f32 = 1.0;
-    for i in 0..1000 {
+    for i in 0..20 {
         let activations = network.forward(normalize_image(images.get(i)));
-        accuracy = (accuracy + activations.p[labels[i] as usize]) / 2.0;
-        if i % 100 == 0 {
-            println!("Image {i}");
-            println!("Loss: {:?}", activations.loss(labels[i]));
-            println!("Accuracy: {:?}", accuracy * 100.0);
-        }
+        print_image(normalize_image(images.get(i)).as_slice().unwrap());
+        println!("{:?}", activations.p);
+        println!("{:?}", activations.p[labels[i] as usize] * 100.0)
     }
+    */
+
     /*
         let mut network = network::Network::new(42);
 
@@ -58,11 +62,13 @@ fn main() {
                 println!("Accuracy: {:?}", accuracy * 100.0);
             }
 
-            if i % 2500 == 0 && i != 0 {
+            if i % 4000 == 0 && i != 0 {
                 learning_rate /= 2.0;
             }
         }
 
         network.save("model.json").expect("failed to save");
     */
+
+    autograd::autograd();
 }

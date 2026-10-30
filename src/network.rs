@@ -93,48 +93,45 @@ impl Network {
         // i.e. [0,0,0,0,1,0...] label = 4
         let mut logits_gradient: Array1<f32> = Array1::zeros(10);
 
-        let mut index: usize = 0;
-        for prob in &cache.p {
-            if index as u8 == label {
-                logits_gradient[index] = *prob - 1.0;
+        for (index, item) in logits_gradient.iter_mut().enumerate() {
+            if index == label as usize {
+                *item = cache.p[index] - 1.0;
             } else {
-                logits_gradient[index] = *prob;
+                *item = cache.p[index];
             }
-            index += 1;
         }
-
-        let bias2_gradient: Array1<f32> = logits_gradient.clone();
 
         let mut weights2_gradient: Array2<f32> = Array2::zeros((10, 128));
-        for ((digit, hidden_neuron), slot) in weights2_gradient.indexed_iter_mut() {
-            *slot = logits_gradient[digit] * cache.a1[hidden_neuron];
+        for ((row, col), val) in weights2_gradient.indexed_iter_mut() {
+            *val = logits_gradient[row] * cache.a1[col];
         }
 
-        let mut hidden_post_activation_gradient: Array1<f32> = Array1::zeros(128);
-        for j in 0..128 {
-            let mut temp: Array1<f32> = Array1::zeros(10);
+        let bias2_gradient = logits_gradient.clone();
+
+        let mut post_activations_gradient: Array1<f32> = Array1::zeros(128);
+        for (index, neuron) in post_activations_gradient.indexed_iter_mut() {
+            let mut connections: Array1<f32> = Array1::zeros(10);
             for digit in 0..10 {
-                temp[digit] = self.weights2[(digit, j)] * logits_gradient[digit];
+                connections[digit] = logits_gradient[digit] * self.weights2[(digit, index)]
             }
-            hidden_post_activation_gradient[j] = temp.sum();
+            *neuron = connections.sum();
         }
 
-        let mut hidden_pre_activation_gradient: Array1<f32> = Array1::zeros(128);
-        for (index, val) in cache.a1.indexed_iter() {
-            if *val > 0.0 {
-                hidden_pre_activation_gradient[index] = hidden_post_activation_gradient[index];
+        let mut pre_activations_gradient: Array1<f32> = Array1::zeros(128);
+        for (index, neuron) in pre_activations_gradient.indexed_iter_mut() {
+            if cache.z1[index] > 0.0 {
+                *neuron = post_activations_gradient[index];
             } else {
-                hidden_pre_activation_gradient[index] = 0.0;
+                *neuron = 0.0;
             }
         }
 
         let mut weights1_gradient: Array2<f32> = Array2::zeros((128, 784));
-        for ((hidden_neuron, input_pixel), slot) in weights1_gradient.indexed_iter_mut() {
-            *slot = hidden_pre_activation_gradient[hidden_neuron] * cache.x[input_pixel];
+        for ((hidden_neuron, pixel), slot) in weights1_gradient.indexed_iter_mut() {
+            *slot = pre_activations_gradient[hidden_neuron] * cache.x[pixel];
         }
 
-        let bias1_gradient: Array1<f32> = hidden_pre_activation_gradient;
-
+        let bias1_gradient = pre_activations_gradient;
         Gradient {
             weights1_gradient,
             bias1_gradient,
@@ -177,6 +174,10 @@ fn relu(number: f32) -> f32 {
     number.max(0_f32)
 }
 
+// turns all logits into probabilities
+// probability for a logit is e^logit / sum(e^logits)
+// this turns negative logits into small positive numbers, and big positive logits into big positive
+// numbers, and then normalizes them into a probability by dividing by the sum
 fn softmax(logits: &Array1<f32>) -> Array1<f32> {
     let max_logit = logits.fold(f32::NEG_INFINITY, |acc, &x| acc.max(x));
     let exps = logits.mapv(|x| (x - max_logit).exp());
