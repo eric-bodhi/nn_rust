@@ -1,11 +1,8 @@
-use ndarray::Array1;
-mod autograd;
 mod error;
 mod gpu;
 mod idx;
 mod mat_autograd;
 mod matrix;
-mod network;
 mod train;
 
 fn main() {
